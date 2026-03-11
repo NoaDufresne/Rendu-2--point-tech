@@ -1,0 +1,125 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+
+body {
+  margin:0;
+  font-family:'Space Mono', sans-serif;
+  background:#070716;
+  /* allow vertical scroll so sections can be stacked */
+  overflow:auto;
+  color:white;
+}
+
+/* each experiment section takes full viewport height */
+section {
+  height:100vh;
+  width:100%;
+  position:relative;
+}
+
+/* graph and tunnel containers fill their parent section */
+#graph, #tunnel {
+  width:100%;
+  height:100%;
+}
+
+/* tunnel width customizable via CSS variable (--tunnel-width) */
+:root {
+  --tunnel-width: 300vw; /* default value; change in CSS or via JS to resize */
+}
+
+/* section2 holds the tunnel and clips overflow; background inherits body color */
+#section2 {
+  overflow: hidden;
+  background: inherit;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#tunnel {
+  width: var(--tunnel-width);
+  height: 100%;
+  /* center horizontally if wider than viewport */
+  margin: 0 auto;
+}
+
+/* removed horizontal-scroll rules */
+
+#tooltip {
+  position:absolute;
+  background:rgba(0,0,0,0.8);
+  padding:8px;
+  border-radius:6px;
+  font-size:13px;
+  max-width:220px;
+  display:none;
+  pointer-events:none;
+}
+
+circle.central {
+  fill: white;
+  r: 10;
+  filter: drop-shadow(0 0 15px white);
+}
+
+circle.small {
+  fill: rgba(255, 255, 255, 0.535);
+  r: 4;
+  opacity:0.8;
+  filter: drop-shadow(0 0 5px white);
+}
+
+line {
+  stroke: #0ff;
+  stroke-opacity: 0.1;
+}
+
+/* Section 3: Scrambling Text Styling */
+#section3 {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #070716;
+}
+
+.section-container {
+  text-align: center;
+  max-width: 90%;
+  padding: 0 2rem;
+}
+
+.section-title {
+  font-size: 1.5rem;
+  margin-bottom: 3rem;
+  color: #8fc9ff;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+/* Customizable text size variables */
+:root {
+  --encoding-font-size: 3rem;
+  --metadata-font-size: 1.8rem;
+  --text-line-height: 1.8;
+}
+
+#encoding-text {
+  font-size: var(--encoding-font-size);
+  line-height: var(--text-line-height);
+  color: #8fc9ff;
+  font-weight: bold;
+  letter-spacing: 0.05em;
+  min-height: 150px;
+  word-wrap: break-word;
+}
+
+#metadata-text {
+  font-size: var(--metadata-font-size);
+  line-height: var(--text-line-height);
+  color: #00ff88;
+  font-family: 'Courier New', monospace;
+  text-align: left;
+  display: inline-block;
+  white-space: pre-wrap;
+  min-height: 250px;
+}

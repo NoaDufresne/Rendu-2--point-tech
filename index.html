@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Force-Directed Data Nebula</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<section id="section1">
+  <div id="graph"></div>
+  <div id="tooltip"></div>
+</section>
+
+<section id="section2">
+  <div id="tunnel"></div>
+</section>
+
+<!-- D3 experiment -->
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="graph.js"></script>
+
+<!-- import map for three.js and related addons -->
+<script type="importmap">
+{
+    "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
+        "lil-gui": "https://unpkg.com/lil-gui@0.19.1/dist/lil-gui.esm.min.js"
+    }
+}
+</script>
+
+<script type="module" src="tunnel.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+
+<section id="section3">
+  <div class="section-container">
+    <h2 class="section-title"></h2>
+    <div id="metadata-text" class="metadata-text"></div>
+  </div>
+  <script>
+    gsap.registerPlugin(ScrollTrigger);
+    
+    function createScrambleAnimation(element, finalText, chars, duration) {
+      const textLines = finalText.split('\n');
+      const targetElement = document.querySelector(element);
+      
+      let displayText = textLines.map(line => 
+        line.split('').map(() => chars[Math.floor(Math.random() * chars.length)]).join('')
+      ).join('\n');
+      
+      targetElement.textContent = displayText;
+      
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: "#section3",
+          start: "top center",
+          end: "bottom bottom",
+          scrub: 1.5,
+          markers: false
+        }
+      });
+      
+      tl.to({progress: 0}, {
+        progress: 1,
+        duration: duration,
+        ease: "none",
+        onUpdate: function() {
+          const progress = this.progress();
+          let newText = textLines.map((line, lineIdx) => {
+            return line.split('').map((char, charIdx) => {
+              const totalChars = textLines.reduce((acc, l) => acc + l.length, 0);
+              const charPosition = textLines.slice(0, lineIdx).reduce((acc, l) => acc + l.length, 0) + charIdx;
+              const revealThreshold = progress * totalChars;
+              
+              if (charPosition <= revealThreshold) {
+                return char;
+              } else {
+                return chars[Math.floor(Math.random() * chars.length)];
+              }
+            }).join('');
+          }).join('\n');
+          
+          targetElement.textContent = newText;
+        }
+      });
+    }
+    
+    // Run the animation
+    createScrambleAnimation(
+      "#metadata-text",
+      "USER_ID: 84721\nDEVICE: Mobile\nLOCATION: Paris\nTIME: 21:42:18\nENGAGEMENT_SCORE: 0.73\n\nI just wanted to share this with the community",
+      "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz:_ ",
+      6
+    );
+  </script>
+</section>
