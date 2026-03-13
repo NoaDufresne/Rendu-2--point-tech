@@ -14,7 +14,7 @@ J’ai choisi un Force-Directed Graph pour représenter un cluster de données a
 
 Cette visualisation pourrait m’aider à explorer et présenter les relations entre les données de manière  visuelle et dynamique (aussi interactive), comme le déplacement des nœuds ou l’affichage d’informations supplémentaires au survol.
 
-##### Le Force-Driven Graph (D3.js)
+##### Le Force-Directed Graph (D3.js)
 
 Un force-directed graph est un type de visualisation de réseau où les nœuds et les liens sont disposés automatiquement selon des forces physiques simulées :
 
@@ -28,6 +28,8 @@ Grâce aux forces, le graphe se réorganise dynamiquement pour trouver une posit
 
 Dans ce code, les nœuds sont **interactifs** : on peut les faire glisser avec la souris, et la simulation s’adapte en temps réel.
 Chaque nœud peut aussi avoir une couleur ou un titre.
+
+[Lien vers le code soure de la fonction ]([URL](https://observablehq.com/@d3/force-directed-graph-component))
 
 ##### À propos de D3.js
 D3.js (Data-Driven Documents) est une bibliothèque JavaScript puissante qui permet de créer des visualisations interactives basées sur des données dans le navigateur.
@@ -43,19 +45,19 @@ J’ai également voulu tester Three.js, en partant d’un projet existant (code
 
 Three.js permet de créer des scènes 3D interactives dans le navigateur, ce qui offre un niveau d’immersion et de visualisation difficile à obtenir avec des bibliothèques 2D comme D3.js.
 
-Grâce à elle, je pourrais explorer des représentations plus complexes et immersives des données, intégrer des animations 3D, et permettre à l’utilisateur de naviguer autour des éléments de manière libre, offrant ainsi une expérience plus visuelle et engageante que les graphiques classiques en 2d
+Grâce à elle, je pourrais explorer des représentations plus complexes et immersives des données, intégrer des animations 3D, et permettre à l’utilisateurice de naviguer autour des éléments de manière libre, offrant ainsi une expérience plus visuelle et engageante que les graphiques classiques en 2d
 
 # 3 - Text scramble effect (GSAP w/ Scroll Trigger)
 
-J'ai ensuite voulu expérimenter avec un effet rappelant l'univers de la donnée, de la metadata à travers une animation touchant à la typographie. Pour mon projet, le text scramble permet de représenter la transformation d'un message : de son état "codé" ou fragmenté, jusqu'à son texte lisible. Cette expérience traduit visuellement la manière dont les informations brutes (symboles,métadonnées...) se structurent et deviennent compréhensibles, en lien direct avec mon projet sur les flux et traitements des données utilisateur·ices.
+J'ai ensuite voulu expérimenter avec un effet rappelant l'univers de la donnée, de la metadata à travers une animation touchant à la typographie. Pour mon projet, le text scramble permet de représenter la transformation d'un message : de son état "codé" ou fragmenté, jusqu'à son texte lisible. Cette expérience traduit visuellement la manière dont les informations brutes (symboles,métadonnées..) se structurent et deviennent compréhensibles, en lien direct avec mon projet sur les flux et traitements des données utilisateur·ices.
 
-J'ai trouvé pertinent (pour une appriche scrolly telling) de jouer sur le scroll pour réveler de l'information.
+J'ai trouvé pertinent (pour une approche scrolly telling) de jouer sur le scroll pour réveler de l'information.
 
 ##### Fonctionnement 
 
-Texte brouillé au départ : chaque caractère du texte final est remplacé par un symbole aléatoire, créant un chaos visuel.
+Texte brouillé au départ : chaque caractère du texte final est remplacé par un symbole aléatoire
 
-↳ Animation au scroll : la position dans la section détermine la progression de l’animation (GSAP ScrollTrigger).
+↳ Animation au scroll : la position dans la section détermine la progression de l’animation ([GSAP scroll trigger ](https://observablehq.com/@d3/force-directed-graph-component](https://gsap.com/docs/v3/Plugins/ScrollTrigger/))). 
 
 ↳ Révélation progressive : les caractères se transforment un par un du symbole aléatoire au vrai caractère selon la progression.
 
