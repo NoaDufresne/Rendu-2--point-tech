@@ -3,50 +3,52 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
-const params = {
-    colorBg: '#080808',
-    colorLine: '#373f48',
+
+// config
+const config = {
+    backgroundColor: '#2042ff',
+    lineColor: '#ffffff',
+    signalColor1: '#e41aff',
+    signalColor2: '#f826ff',
+    signalColor3: '#ffffff',
     
-    colorSignal: '#3fd9ff',  
-    useColor2: true,        
-    colorSignal2: '#23f726', 
-    useColor3: true,        
-    colorSignal3: '#ffffff', 
-
-    lineCount: 50,          
-    globalRotation: 0,      
-    positionX: 0,
-    positionY: 0,
-
-    spreadHeight: 30.33,
-    spreadDepth: 0,
-    curveLength: 70,
-    straightLength: 100,
-    curvePower: 0.7,
-
-    waveSpeed: 2.48,
-    waveHeight: 0.145,
-    lineOpacity: 0.557,
-
-    signalCount: 94,        
-    speedGlobal: 0.345,
-    trailLength: 3,        
+    // Tunnel geometry
+    lineCount: 50,              // Nombre de lignes parallèles
+    segmentCount: 150,          // Nombre de points par ligne
+    curveLength: 100,            // Longueur de la courbe
+    straightLength: 100,        // Longueur de la section droite
+    curvePower: 0.7,            // Contrôle la forme de la courbe
     
-    bloomStrength: 6.0,
-    bloomRadius: 0.5
+    // Spread (écartement des lignes)
+    spreadHeight: 50,        // Hauteur totale du tunnel
+    spreadDepth: 0,             // Profondeur du tunnel
+    
+    // Animation des lignes
+    waveSpeed: 4,            // Vitesse des vagues
+    waveHeight: 0.145,          // Amplitude des vagues
+    lineOpacity: 0.5,         // Opacité des lignes de fond
+    
+    // Particules
+    signalCount: 90,            // Nombre de signaux
+    signalSpeed: 0.345,         // Vitesse de déplacement
+    trailLength: 10,             // Longueur de la traîne
+    
+    // Bloom
+    bloomStrength: 7.0,
+    bloomRadius: 1
 };
 
-params.positionX = (params.curveLength - params.straightLength) / 2;
-
-const CONSTANTS = {
-    segmentCount: 150
-};
-
+// SCene
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(params.colorBg);
-scene.fog = new THREE.FogExp2(params.colorBg, 0.002);
+scene.background = new THREE.Color(config.backgroundColor);
+scene.fog = new THREE.FogExp2(config.backgroundColor, 0.002);
 
-const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1000);
+const camera = new THREE.PerspectiveCamera(
+    45,
+    window.innerWidth / window.innerHeight,
+    1,
+    1000
+);
 camera.position.set(0, 0, 100);
 camera.lookAt(0, 0, 0);
 
@@ -54,7 +56,6 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-// append to tunnel container instead of body
 const tunnelContainer = document.getElementById('tunnel');
 if (tunnelContainer) {
     tunnelContainer.appendChild(renderer.domElement);
@@ -62,223 +63,244 @@ if (tunnelContainer) {
     document.body.appendChild(renderer.domElement);
 }
 
-// Group to hold everything for rotation and positioning
-const contentGroup = new THREE.Group();
-// Apply initial position
-contentGroup.position.set(params.positionX, params.positionY, 0);
-scene.add(contentGroup);
+const tunnelGroup = new THREE.Group();
+scene.add(tunnelGroup);
 
-// --- POST-PROCESSING ---
-const renderScene = new RenderPass(scene, camera);
-const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
-bloomPass.threshold = 0;
-bloomPass.strength = params.bloomStrength;
-bloomPass.radius = params.bloomRadius;
+
+const renderPass = new RenderPass(scene, camera);
+const bloomPass = new UnrealBloomPass(
+    new THREE.Vector2(window.innerWidth, window.innerHeight),
+    1.5,    // strength
+    0.4,    // radius
+    0.85    // threshold
+);
+bloomPass.strength = config.bloomStrength;
+bloomPass.radius = config.bloomRadius;
 
 const composer = new EffectComposer(renderer);
-composer.addPass(renderScene);
+composer.addPass(renderPass);
 composer.addPass(bloomPass);
 
-// --- MATH & PATH CALCULATION ---
-function getPathPoint(t, lineIndex, time) {
-    const totalLen = params.curveLength + params.straightLength;
-    const currentX = -params.curveLength + t * totalLen;
 
+let elapsedTime = 0;
+
+/**
+ * @param {number} t
+ * @param {number} lineIndex - 
+ * @param {number} time
+ * @returns {THREE.Vector3}
+ */
+function getPathPoint(t, lineIndex, time) {
+    const totalLength = config.curveLength + config.straightLength;
+    const currentX = -config.curveLength + t * totalLength;
+    
     let y = 0;
     let z = 0;
-    const spreadFactor = (lineIndex / params.lineCount - 0.5) * 2;
-
+    
+    // Facteur d'écartement (de -1 à 1)
+    const spreadFactor = (lineIndex / config.lineCount - 0.5) * 2;
+    
+    // Section courbe (avant x=0)
     if (currentX < 0) {
-        const ratio = (currentX + params.curveLength) / params.curveLength;
-        let shapeFactor = (Math.cos(ratio * Math.PI) + 1) / 2;
-        shapeFactor = Math.pow(shapeFactor, params.curvePower);
-
-        y = spreadFactor * params.spreadHeight * shapeFactor;
-        z = spreadFactor * params.spreadDepth * shapeFactor;
-
-        const waveFactor = shapeFactor; 
-        const wave = Math.sin(time * params.waveSpeed + currentX * 0.1 + lineIndex) * params.waveHeight * waveFactor;
+        // Normalise la position dans la courbe (0 à 1)
+        const curveRatio = (currentX + config.curveLength) / config.curveLength;
+        
+        // Forme lisse de la courbe (cosinus)
+        let shapeFactor = (Math.cos(curveRatio * Math.PI) + 1) / 2;
+        shapeFactor = Math.pow(shapeFactor, config.curvePower);
+        
+        // Applique l'écartement avec la forme
+        y = spreadFactor * config.spreadHeight * shapeFactor;
+        z = spreadFactor * config.spreadDepth * shapeFactor;
+        
+        // Ajoute des vagues pour l'animation
+        const wave = Math.sin(
+            time * config.waveSpeed + 
+            currentX * 0.1 + 
+            lineIndex
+        ) * config.waveHeight * shapeFactor;
         y += wave;
     }
-
+    
     return new THREE.Vector3(currentX, y, z);
 }
 
-// --- OBJECTS MANAGEMENT ---
-let backgroundLines = [];
-let signals = [];
-const bgMaterial = new THREE.LineBasicMaterial({ 
-    color: params.colorLine, 
-    transparent: true, 
-    opacity: params.lineOpacity,
-    depthWrite: false 
+// MATERIAls
+const lineMaterial = new THREE.LineBasicMaterial({
+    color: config.lineColor,
+    transparent: true,
+    opacity: config.lineOpacity,
+    depthWrite: false
 });
-    
-// Signal Materials
+
 const signalMaterial = new THREE.LineBasicMaterial({
     vertexColors: true,
     blending: THREE.AdditiveBlending,
-    depthWrite: false, 
-    depthTest: false,  
+    depthWrite: false,
+    depthTest: false,
     transparent: true
 });
-const signalColorObj1 = new THREE.Color(params.colorSignal);
-const signalColorObj2 = new THREE.Color(params.colorSignal2);
-const signalColorObj3 = new THREE.Color(params.colorSignal3);
 
-function pickSignalColor() {
-    const choices = [signalColorObj1];
-    if (params.useColor2) choices.push(signalColorObj2);
-    if (params.useColor3) choices.push(signalColorObj3);
-    return choices[Math.floor(Math.random() * choices.length)];
-}
+const signalColors = [
+    new THREE.Color(config.signalColor1),
+    new THREE.Color(config.signalColor2),
+    new THREE.Color(config.signalColor3)
+];
 
-// --- REBUILD FUNCTIONS ---
+// OBJECTS
+let backgroundLines = [];
+let signals = [];
 
-function rebuildLines() {
-    // Remove old lines
-    backgroundLines.forEach(l => {
-        contentGroup.remove(l);
-        l.geometry.dispose();
+function createTunnelLines() {
+    backgroundLines.forEach(line => {
+        tunnelGroup.remove(line);
+        line.geometry.dispose();
     });
     backgroundLines = [];
-
-    // Create new lines
-    for (let i = 0; i < params.lineCount; i++) {
+    
+    for (let i = 0; i < config.lineCount; i++) {
         const geometry = new THREE.BufferGeometry();
-        const positions = new Float32Array(CONSTANTS.segmentCount * 3);
-        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        const positions = new Float32Array(config.segmentCount * 3);
         
-        const line = new THREE.Line(geometry, bgMaterial);
-        line.userData = { id: i };
-        line.renderOrder = 0; 
-        contentGroup.add(line);
+        for (let j = 0; j < config.segmentCount; j++) {
+            const t = j / (config.segmentCount - 1);
+            const point = getPathPoint(t, i, 0);
+            positions[j * 3] = point.x;
+            positions[j * 3 + 1] = point.y;
+            positions[j * 3 + 2] = point.z;
+        }
+        
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        const line = new THREE.Line(geometry, lineMaterial.clone());
+        tunnelGroup.add(line);
         backgroundLines.push(line);
     }
-    rebuildSignals();
 }
 
-function rebuildSignals() {
-    signals.forEach(s => {
-        contentGroup.remove(s.mesh);
-        s.mesh.geometry.dispose();
+function createSignals() {
+    signals.forEach(signal => {
+        tunnelGroup.remove(signal.line);
+        signal.line.geometry.dispose();
     });
     signals = [];
-    for(let i=0; i<params.signalCount; i++) {
-        createSignal();
+    
+    for (let i = 0; i < config.signalCount; i++) {
+        const signal = {
+            progress: Math.random(),                    // Position (0 à 1)
+            lineIndex: Math.floor(Math.random() * config.lineCount),  // Ligne aléatoire
+            color: getRandomSignalColor(),              // Couleur THREE.Color
+            history: []                                 // Historique des positions
+        };
+        
+        const geometry = new THREE.BufferGeometry();
+        const positions = new Float32Array((config.trailLength + 1) * 3);
+        const colors = new Float32Array((config.trailLength + 1) * 3);
+        
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        
+        const signalLine = new THREE.Line(geometry, signalMaterial.clone());
+        tunnelGroup.add(signalLine);
+        
+        signal.line = signalLine;
+        signals.push(signal);
     }
 }
 
-function createSignal() {
-    const maxTrail = 150; 
-    const geometry = new THREE.BufferGeometry();
-    const positions = new Float32Array(maxTrail * 3);
-    const colors = new Float32Array(maxTrail * 3);
-    
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-    
-    const mesh = new THREE.Line(geometry, signalMaterial);
-    mesh.frustumCulled = false;
-    mesh.renderOrder = 1; 
-    contentGroup.add(mesh);
 
-    signals.push({
-        mesh: mesh,
-        laneIndex: Math.floor(Math.random() * params.lineCount),
-        speed: 0.2 + Math.random() * 0.5,
-        progress: Math.random(),
-        history: [],
-        assignedColor: pickSignalColor()
+function getRandomSignalColor() {
+    return signalColors[Math.floor(Math.random() * signalColors.length)];
+}
+
+
+createTunnelLines();
+createSignals();
+
+// loop
+const clock = new THREE.Clock();
+
+
+function updateTunnelLines(time) {
+    backgroundLines.forEach((line, lineIndex) => {
+        const positions = line.geometry.attributes.position.array;
+        
+        for (let j = 0; j < config.segmentCount; j++) {
+            const t = j / (config.segmentCount - 1);
+            const point = getPathPoint(t, lineIndex, time);
+            
+            positions[j * 3] = point.x;
+            positions[j * 3 + 1] = point.y;
+            positions[j * 3 + 2] = point.z;
+        }
+        
+        line.geometry.attributes.position.needsUpdate = true;
     });
 }
 
-// Initial Build
-rebuildLines();
-
-
-// GUI removed per request; controls are not needed.
-
-
-// --- ANIMATION LOOP ---
-const clock = new THREE.Clock();
+function updateSignals(time) {
+    signals.forEach(signal => {
+        signal.progress += config.signalSpeed * 0.005;
+        
+        if (signal.progress > 1.0) {
+            signal.progress = 0;
+            signal.lineIndex = Math.floor(Math.random() * config.lineCount);
+            signal.history = [];
+        }
+        
+        const currentPos = getPathPoint(signal.progress, signal.lineIndex, time);
+        signal.history.push(currentPos);
+        
+        if (signal.history.length > config.trailLength + 1) {
+            signal.history.shift();
+        }
+        
+        const positions = signal.line.geometry.attributes.position.array;
+        const colors = signal.line.geometry.attributes.color.array;
+        
+        const historyLength = signal.history.length;
+        
+        for (let i = 0; i <= config.trailLength; i++) {
+            const historyIndex = historyLength - 1 - i;
+            const pos = historyIndex >= 0 ? signal.history[historyIndex] : currentPos;
+            
+            positions[i * 3] = pos.x;
+            positions[i * 3 + 1] = pos.y;
+            positions[i * 3 + 2] = pos.z;
+            
+            const alpha = Math.max(0, 1 - i / (config.trailLength + 1));
+            
+            colors[i * 3] = signal.color.r * alpha;
+            colors[i * 3 + 1] = signal.color.g * alpha;
+            colors[i * 3 + 2] = signal.color.b * alpha;
+        }
+        
+        signal.line.geometry.attributes.position.needsUpdate = true;
+        signal.line.geometry.attributes.color.needsUpdate = true;
+    });
+}
 
 function animate() {
     requestAnimationFrame(animate);
-
+    
     const time = clock.getElapsedTime();
-
-    backgroundLines.forEach(line => {
-        const positions = line.geometry.attributes.position.array;
-        const lineId = line.userData.id;
-        for (let j = 0; j < CONSTANTS.segmentCount; j++) {
-            const t = j / (CONSTANTS.segmentCount - 1);
-            const vec = getPathPoint(t, lineId, time);
-            positions[j * 3] = vec.x;
-            positions[j * 3 + 1] = vec.y;
-            positions[j * 3 + 2] = vec.z;
-        }
-        line.geometry.attributes.position.needsUpdate = true;
-    });
-
-    // 2. Update Signals
-    signals.forEach(sig => {
-        sig.progress += sig.speed * 0.005 * params.speedGlobal;
-        
-        if (sig.progress > 1.0) {
-            sig.progress = 0;
-            sig.laneIndex = Math.floor(Math.random() * params.lineCount);
-            sig.history = [];
-            sig.assignedColor = pickSignalColor();
-        }
-
-        const pos = getPathPoint(sig.progress, sig.laneIndex, time);
-        sig.history.push(pos);
-        
-        if (sig.history.length > params.trailLength + 1) { 
-            sig.history.shift();
-        }
-
-        const positions = sig.mesh.geometry.attributes.position.array;
-        const colors = sig.mesh.geometry.attributes.color.array;
-        
-        const drawCount = Math.max(1, params.trailLength);
-        const currentLen = sig.history.length;
-
-        for (let i = 0; i < drawCount; i++) {
-            let index = currentLen - 1 - i;
-            if (index < 0) index = 0;
-            
-            const p = sig.history[index] || new THREE.Vector3();
-
-            positions[i*3] = p.x;
-            positions[i*3+1] = p.y;
-            positions[i*3+2] = p.z;
-
-            let alpha = 1;
-            if (params.trailLength > 0) {
-                alpha = Math.max(0, 1 - i / params.trailLength);
-            }
-            
-            colors[i*3] = sig.assignedColor.r * alpha;
-            colors[i*3+1] = sig.assignedColor.g * alpha;
-            colors[i*3+2] = sig.assignedColor.b * alpha;
-        }
-        
-        sig.mesh.geometry.setDrawRange(0, drawCount);
-        sig.mesh.geometry.attributes.position.needsUpdate = true;
-        sig.mesh.geometry.attributes.color.needsUpdate = true;
-    });
-
+    
+    updateTunnelLines(time);
+    updateSignals(time);
+    
     composer.render();
 }
 
-// Resize Handler
+// E listners
+
 window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    
+    camera.aspect = width / height;
     camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    composer.setSize(window.innerWidth, window.innerHeight);
+    
+    renderer.setSize(width, height);
+    composer.setSize(width, height);
 });
 
 animate();

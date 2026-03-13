@@ -1,4 +1,3 @@
-// number of peripheral nodes; bump up for a denser/bigger cloud
 const numSmall = 100;
 const width = window.innerWidth;
 const height = window.innerHeight;
@@ -43,7 +42,6 @@ function floatForce(){
   })
 }
 
-// the simulation is created later; tick handler is attached during creation below
 
 for(let i=0;i<numSmall;i++){
   nodesData.push({
@@ -51,9 +49,7 @@ for(let i=0;i<numSmall;i++){
     type:"small",
     text:`Node ${i}`,
     class:"small",
-    // slightly larger radii to make overall thing appear bigger
     radius:6 + Math.random()*4,
-    // per-node random drift parameters
     driftAmplitude: 0.02 + Math.random()*0.05,
     driftAngle: Math.random() * Math.PI * 2
   });
@@ -67,7 +63,7 @@ nodesData.forEach(n=>{
 
 for(let i=0;i<numSmall;i++){
   for(let j=i+1;j<numSmall;j++){
-    if(Math.random()<0.05){ // moins dense, 5% chance
+    if(Math.random()<0.05){ 
       linksData.push({source:"small"+i,target:"small"+j});
     }
   }

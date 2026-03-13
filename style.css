@@ -122,4 +122,8 @@ line {
   display: inline-block;
   white-space: pre-wrap;
   min-height: 250px;
+  background: transparent;
+  border: 2px solid white;
+  border-radius: 0px;
+  padding: 2rem;
 }
